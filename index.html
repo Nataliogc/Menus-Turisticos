@@ -9,6 +9,7 @@
   *{box-sizing:border-box}
   body{margin:0;background:#f4f5f7;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
 
+  /* A4 sin márgenes */
   @page{size:A4;margin:0;}
   @media print{
     .app{display:none !important;}
@@ -16,6 +17,7 @@
     body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
   }
 
+  /* Controles */
   .app{max-width:1024px;margin:10px auto;padding:0 12px}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
   .controls select,.controls input[type=file],.controls input[type=color]{padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff}
@@ -23,6 +25,7 @@
   .btn.secondary{background:#2d6cdf}
   .btn.warn{background:#b23b3b}
 
+  /* Páginas */
   .page{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);position:relative;overflow:hidden}
   .page-header{position:absolute;top:0;left:0;width:210mm;height:var(--headerH);background:#fff;z-index:5}
   .page-header img{width:100%;height:100%;object-fit:cover;object-position:center}
@@ -30,6 +33,7 @@
   .page-footer img{width:100%;height:100%;object-fit:contain}
   .content{position:absolute;left:0;right:0;top:var(--headerH);bottom:var(--footerH);padding:8mm;overflow:hidden}
 
+  /* Secciones en 2 columnas */
   .section{break-inside:avoid; page-break-inside:avoid; margin-bottom:12px}
   h2{margin:0 0 6px;font-size:18px;font-weight:700;text-transform:uppercase;background:var(--theme);color:#fff;padding:6px 10px;border-radius:4px}
   .columns{column-count:2; column-gap:28px}
@@ -37,19 +41,23 @@
   .columns li{margin:2px 0; break-inside:avoid; page-break-inside:avoid}
   .columns ol li::marker{font-size:10px;color:#757575;font-weight:600}
 
+  /* Alérgenos (superíndices pequeños) */
   .sup{font-size:11px;line-height:1;vertical-align:super;color:#0b2f1b;font-weight:900}
   .sep,.dash{font-size:11px;vertical-align:super;color:#0b2f1b}
   .sep{margin:0 2px}.dash{margin:0 1px}
 
+  /* Post-it al pie de la última página */
   .pinned-note{position:absolute; left:8mm; right:8mm; bottom:6mm; z-index:4;}
-  .postit{position:relative; background:#fff8b3; border:1px solid #e6d88a; border-radius:10px;
-          padding:14px 16px; font-family:"Times New Roman",Times,serif; font-size:12pt; line-height:1.35;
-          box-shadow:0 10px 18px rgba(0,0,0,.18); transform:rotate(-0.8deg)}
+  .postit{
+    position:relative; background:#fff8b3; border:1px solid #e6d88a; border-radius:10px;
+    padding:14px 16px; font-family:"Times New Roman",Times,serif; font-size:12pt; line-height:1.35;
+    box-shadow:0 10px 18px rgba(0,0,0,.18); transform:rotate(-0.8deg);
+  }
   .postit::before{content:"📌"; position:absolute; left:50%; top:-24px; transform:translateX(-50%) rotate(-12deg); font-size:22px; text-shadow:0 1px 2px rgba(0,0,0,.25)}
-  .postit::after{content:""; position:absolute; right:10px; top:8px; width:16px; height:16px;
-                 background:linear-gradient(135deg, rgba(0,0,0,.08), rgba(0,0,0,0)) no-repeat; clip-path:polygon(0 0,100% 0,100% 100%); opacity:.35}
+  .postit::after{content:""; position:absolute; right:10px; top:8px; width:16px; height:16px; background:linear-gradient(135deg, rgba(0,0,0,.08), rgba(0,0,0,0)) no-repeat; clip-path:polygon(0 0,100% 0,100% 100%); opacity:.35}
   .content.has-note{ padding-bottom:42mm }
 
+  /* Editor */
   .editor{border:1px solid #ddd;background:#fff;border-radius:10px;padding:12px;margin:8px auto 14px}
   .editor h4{margin:8px 0 6px}
   .editor .columns{column-gap:18px}
@@ -95,16 +103,23 @@
     <label>Fondo: <input id="bgColor" type="color" value="#ffffff"></label>
 
     <button id="pdfBtn" class="btn" type="button">Descargar PDF</button>
+
     <label>Imagen:
       <select id="imgFormat">
         <option value="png" selected>PNG</option>
         <option value="jpeg">JPG</option>
       </select>
     </label>
+    <label style="display:flex;gap:6px;align-items:center">
+      <input type="checkbox" id="perPage" checked>
+      <span>Una imagen por página</span>
+    </label>
     <button id="imgBtn" class="btn secondary" type="button">Descargar imagen</button>
+
     <button id="resetBtn" class="btn warn" type="button">Restaurar base</button>
   </div>
 
+  <!-- Editor -->
   <div class="editor" id="editor">
     <div><strong>Nota final (post-it):</strong></div>
     <div id="introEdit" contenteditable="true" style="border:1px dashed #ccc;border-radius:6px;padding:8px;margin-bottom:8px"></div>
@@ -127,13 +142,16 @@
   </div>
 </div>
 
+<!-- Páginas generadas -->
 <div id="pagesHost"></div>
 
+<!-- Librerías para exportar -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 (function(){
+  /* === Config inicial === */
   const FOOTER_IMG="img/Alergenos.jpg";
   let theme='#0b3d20', headerSrc="img/Guadina.png", coverSrc="", coverFit="contain";
 
@@ -146,6 +164,7 @@
   };
   let state=JSON.parse(JSON.stringify(BASE));
 
+  /* === Utilidades === */
   const sup=n=>'<span class="sup">'+n+'</span>';
   const sep=()=>'<span class="sep">–</span>';
   const dash=()=>'<span class="dash">–</span>';
@@ -159,6 +178,7 @@
   const clean=arr=>arr.map(s=>(s||'').replace(/\s+/g,' ').trim()).filter(Boolean);
   const listHTML=arr=>clean(arr).map(it=>'<li>'+parseAllergens(it)+'</li>').join('');
 
+  /* === Editor === */
   function mountEditable(id, arrayRef){
     const ol=document.getElementById(id), box=ol.parentElement; ol.innerHTML='';
     arrayRef.forEach((txt,i)=>{
@@ -176,7 +196,6 @@
       box.insertBefore(btn, ol.nextSibling);
     }
   }
-
   function buildEditor(){
     const ie=document.getElementById('introEdit');
     ie.textContent=state.intro||''; ie.onblur=()=>{state.intro=ie.innerText.trim(); render();};
@@ -186,6 +205,7 @@
     mountEditable('postresEdit',  state.postres);
   }
 
+  /* === Paginado === */
   function createPage(){
     const page=document.createElement('div'); page.className='page';
     page.innerHTML='<div class="page-header"><img alt="Cabecera"></div><div class="page-footer"><img alt="Alérgenos"></div><div class="content"></div>';
@@ -215,12 +235,14 @@
     }
   }
 
+  /* === Render === */
   function render(){
     document.documentElement.style.setProperty('--theme', theme);
     document.documentElement.style.setProperty('--bg', document.getElementById('bgColor').value || '#ffffff');
     paginate();
   }
 
+  /* === Exportar PDF === */
   document.getElementById('pdfBtn').onclick=async()=>{
     const host=document.getElementById('pagesHost');
     await Promise.all([...host.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve()));
@@ -230,14 +252,40 @@
     await html2pdf().set(opt).from(host).save().catch(()=>window.print());
   };
 
-  document.getElementById('imgBtn').onclick=async()=>{
-    const host=document.getElementById('pagesHost');
+  /* === Exportar imagen (por página o completa) === */
+  document.getElementById('imgBtn').onclick = async () => {
+    const fmt = document.getElementById('imgFormat').value; // 'png' o 'jpeg'
+    const perPage = document.getElementById('perPage').checked;
+    const quality = (fmt === 'png') ? undefined : 0.96;
+
+    const host = document.getElementById('pagesHost');
     await Promise.all([...host.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve()));
-    const fmt=document.getElementById('imgFormat').value;
-    const canvas=await html2canvas(host,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
-    canvas.toBlob(b=>{if(!b)return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fmt==='png'?'menu-turistico.png':'menu-turistico.jpg'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1200);}, fmt==='png'?'image/png':'image/jpeg', fmt==='png'?undefined:0.92);
+
+    const saveCanvas = (canvas, idx) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const suffix = perPage ? `-p${idx+1}` : '';
+        a.download = `menu-turistico${suffix}.${fmt === 'png' ? 'png' : 'jpg'}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+      }, fmt === 'png' ? 'image/png' : 'image/jpeg', quality);
+    };
+
+    if (perPage) {
+      const pages = [...host.querySelectorAll('.page')];
+      for (let i=0;i<pages.length;i++){
+        const canvas = await html2canvas(pages[i], {scale:3, backgroundColor:'#ffffff', useCORS:true, logging:false});
+        saveCanvas(canvas, i);
+      }
+    } else {
+      const canvas = await html2canvas(host, {scale:3, backgroundColor:'#ffffff', useCORS:true, logging:false});
+      saveCanvas(canvas, 0);
+    }
   };
 
+  /* === Controles === */
   document.getElementById('resetBtn').onclick=()=>{ if(!confirm('¿Restaurar base?'))return; state=JSON.parse(JSON.stringify(BASE)); buildEditor(); render(); };
   document.getElementById('headerSelect').onchange=e=>{const v=e.target.value,f=document.getElementById('headerFile'); if(v==='file'){f.style.display='inline-block';f.click();return;} f.style.display='none'; headerSrc=v; render();};
   document.getElementById('headerFile').onchange=async e=>{const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=()=>{headerSrc=r.result; render();}; r.readAsDataURL(file);};
@@ -247,6 +295,7 @@
   document.getElementById('themeColor').oninput=e=>{theme=e.target.value; render();};
   document.getElementById('bgColor').oninput=()=>render();
 
+  /* init */
   buildEditor(); render();
 })();
 </script>
