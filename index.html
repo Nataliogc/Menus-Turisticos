@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Menú Turístico · 2 columnas con paginado</title>
+<style>
+  :root{--theme:#0b3d20;--bg:#ffffff;--headerH:30mm;--footerH:24mm}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f4f5f7;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+
+  /* A4 sin márgenes */
+  @page{size:A4;margin:0;}
+  @media print{
+    .app{display:none !important;}
+    .page{page-break-after:always;}
+    body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  }
+
+  /* Controles */
+  .app{max-width:1024px;margin:10px auto;padding:0 12px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+  .controls select,.controls input[type=file],.controls input[type=color]{padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff}
+  .btn{padding:9px 14px;border-radius:8px;border:0;background:#0b7a44;color:#fff;font-weight:600;cursor:pointer}
+  .btn.secondary{background:#2d6cdf}
+  .btn.warn{background:#b23b3b}
+
+  /* Páginas */
+  .page{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);position:relative;overflow:hidden}
+  .page-header{position:absolute;top:0;left:0;width:210mm;height:var(--headerH);background:#fff;z-index:5}
+  .page-header img{width:100%;height:100%;object-fit:cover;object-position:center}
+  .page-footer{position:absolute;left:0;bottom:0;width:210mm;height:var(--footerH);background:#fff;z-index:5;display:flex;align-items:center;justify-content:center;padding:0 6mm}
+  .page-footer img{width:100%;height:100%;object-fit:contain}
+  .content{position:absolute;left:0;right:0;top:var(--headerH);bottom:var(--footerH);padding:8mm;overflow:hidden}
+
+  /* Secciones 2 columnas */
+  .section{break-inside:avoid; page-break-inside:avoid; margin-bottom:12px}
+  h2{margin:0 0 6px;font-size:18px;font-weight:700;text-transform:uppercase;background:var(--theme);color:#fff;padding:6px 10px;border-radius:4px}
+  .columns{column-count:2; column-gap:28px}
+  .columns ol{margin:0 0 6px 1.2rem; padding:0}
+  .columns li{margin:2px 0; break-inside:avoid; page-break-inside:avoid}
+  .columns ol li::marker{font-size:10px;color:#757575;font-weight:600}
+
+  /* Alérgenos como superíndices */
+  .sup{font-size:11px;line-height:1;vertical-align:super;color:#0b2f1b;font-weight:900}
+  .sep,.dash{font-size:11px;vertical-align:super;color:#0b2f1b}
+  .sep{margin:0 2px}.dash{margin:0 1px}
+
+  /* Post-it anclado al pie */
+  .pinned-note{position:absolute; left:8mm; right:8mm; bottom:6mm; z-index:4;}
+  .postit{
+    position:relative; background:#fff8b3; border:1px solid #e6d88a; border-radius:10px;
+    padding:14px 16px; font-family:"Times New Roman",Times,serif; font-size:12pt; line-height:1.35;
+    box-shadow:0 10px 18px rgba(0,0,0,.18); transform:rotate(-0.8deg);
+  }
+  .postit::before{content:"📌"; position:absolute; left:50%; top:-24px; transform:translateX(-50%) rotate(-12deg); font-size:22px; text-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .postit::after{content:""; position:absolute; right:10px; top:8px; width:16px; height:16px; background:linear-gradient(135deg, rgba(0,0,0,.08), rgba(0,0,0,0)) no-repeat; clip-path:polygon(0 0,100% 0,100% 100%); opacity:.35}
+  .content.has-note{ padding-bottom:42mm; }
+
+  /* Editor */
+  .editor{border:1px solid #ddd;background:#fff;border-radius:10px;padding:12px;margin:8px auto 14px}
+  .editor h4{margin:8px 0 6px}
+  .editor .columns{column-gap:18px}
+  .editor ol{margin:0 0 6px 1.2rem;padding:0}
+  .editor li{margin:2px 0;outline:none}
+  .add-btn{margin:4px 0 8px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer}
+  .tip{font-size:12px;color:#666;margin:6px 0 0}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="controls">
+    <label>Cabecera:
+      <select id="headerSelect">
+        <option value="">Sin cabecera</option>
+        <option value="Guadina.png" selected>Guadina.png</option>
+        <option value="cumbria.png">cumbria.png</option>
+        <option value="file">Elegir archivo…</option>
+      </select>
+      <input type="file" id="headerFile" accept="image/*" style="display:none">
+    </label>
+
+    <label>Portada:
+      <select id="coverSelect">
+        <option value="" selected>Sin portada</option>
+        <option value="Portada Guadiana.png">Portada Guadiana.png</option>
+        <option value="Portada Cumbria.png">Portada Cumbria.png</option>
+        <option value="Portada Combinada.png">Portada Combinada.png</option>
+        <option value="file">Elegir archivo…</option>
+      </select>
+      <input type="file" id="coverFile" accept="image/*" style="display:none">
+    </label>
+
+    <label>Ajuste portada:
+      <select id="coverFit">
+        <option value="cover">Cubrir</option>
+        <option value="contain" selected>Contener</option>
+      </select>
+    </label>
+
+    <label>Color títulos: <input id="themeColor" type="color" value="#0b3d20"></label>
+    <label>Fondo: <input id="bgColor" type="color" value="#ffffff"></label>
+
+    <button id="pdfBtn" class="btn" type="button">Descargar PDF</button>
+    <label>Imagen:
+      <select id="imgFormat">
+        <option value="png" selected>PNG</option>
+        <option value="jpeg">JPG</option>
+      </select>
+    </label>
+    <button id="imgBtn" class="btn secondary" type="button">Descargar imagen</button>
+    <button id="resetBtn" class="btn warn" type="button">Restaurar base</button>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor" id="editor">
+    <div><strong>Nota final (post-it):</strong></div>
+    <div id="introEdit" contenteditable="true" style="border:1px dashed #ccc;border-radius:6px;padding:8px;margin-bottom:8px"></div>
+
+    <div class="columns">
+      <div>
+        <h4>PRIMEROS</h4>
+        <ol id="primerosEdit"></ol>
+      </div>
+      <div>
+        <h4>SEGUNDOS – PESCADOS</h4>
+        <ol id="pescadosEdit"></ol>
+        <h4>SEGUNDOS – CARNES</h4>
+        <ol id="carnesEdit"></ol>
+        <h4>POSTRES</h4>
+        <ol id="postresEdit"></ol>
+      </div>
+    </div>
+    <p class="tip">Doble clic para editar. <b>Enter</b> añade; <b>Backspace</b> elimina. Los vacíos se omiten en el documento final.</p>
+  </div>
+</div>
+
+<!-- Contenedor de páginas generadas -->
+<div id="pagesHost"></div>
+
+<!-- libs export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+(function(){
+  /* ====== Datos base ====== */
+  const FOOTER_IMG="Alergenos.jpg";
+  let theme='#0b3d20', headerSrc="Guadina.png", coverSrc="", coverFit="contain";
+
+  const BASE={
+    intro:"Honrados sean, valientes viajeros. No busquéis en estos manjares un simple sustento, sino un banquete digno de vuestras andanzas. Que esta mesa sea el inicio de una nueva aventura, compartida con honra y buena compañía. ¡Buen provecho!",
+    primeros:["Sopa Juliana","Sopa de picadillo (5,7)","Sopa de pescado (1,5)","Crema de Reina (5,3,7)","Crema reina mejillón (1,3,4,5)","Crema de verduras con sus costrones (3,5)","Sopa de fideos con jamón (5)","Crema de calabaza con jamón frito y queso (3)","Judías estofadas","Patatas guisadas con calamar (4)","Cocido madrileño","Potaje de vigilia (1,5)","Patatas guisadas con ternera","Judías con perdiz","Paella mixta (1,4,14,6)","Fideua de ibéricos (5)","Arroz a la milanesa (5,3,14)","Arroz caldoso con calamar (4,6,14)","Pisto manchego con huevo frito (7)","Asadillo con huevo y atún (7,1,14)","Migas manchegas con huevo","Gazpacho andaluz (5,14)","Entremeses variados","Ensaladilla rusa con salmón (1,3,7)","Ensalada César (5,1,3,11,14)","Ensalada de tomate, cebolla roja y bonito (1,14)","Carpaccio de tomate, mozzarella y mango (3,14)","Tallarines boloñesa (5,14,3)","Lasaña de verduras (3,5)","Macarrones pomodoro (5)","Tortilla de patatas con ensalada (7)","Menestra de verduras con ajo y jamón","Judías verdes con ensalada (7,1)"],
+    pescados:["Bacalao vizcaína (1,5)","Palometa con tomate (1)","Rollitos de lenguado al limón (1,3,5,14)","Merluza romana o salsa verde (1,5,4,6)","Ternera de mar con ajo y perejil (1)","Filete de corvina al azafrán (1,4,5)","Dorada donostierra (1,14)","Bonito en cama de crema de pisto (1)","Salmón a la naranja (1,3,14)","Albóndigas de sepia y gambas (1,5)"],
+    carnes:["Jamón de cerdo asado","Ternera braseada con patatas panadera (14)","Caldereta de cordero","Muslo de pollo deshuesado a la brasa","Cachopo de ternera con jamón y queso (3,5,7,14)","Pechuguitas de pollo a la pimienta (11,3,14)","Ragú de ternera en salsa de verduras","Magro de cerdo con tomate","Escalopes de ternera al limón (5)","Pollo en pepitoria (2,7)","Muslo de pollo asado al limón (14)","Magras con pisto"],
+    postres:["Flan casero (7,3)","Natillas caseras (7,3)","Pudin de chocolate (1,5,7)","Helado de vasito (7,14)","Babarois al limón (7,14)","Pan de calatrava (3,5,14)","Vasito Mousse de fresa (14)","Vasito Mousse chocolate y nata (14)","Tarta de queso y frutos rojos (1,14)","Arroz con leche (1,5,7)","Tarta de la casa (7,14)"]
+  };
+  let state=JSON.parse(JSON.stringify(BASE));
+
+  /* ====== Utiles ====== */
+  const sup=n=>'<span class="sup">'+n+'</span>';
+  const sep=()=>'<span class="sep">–</span>';
+  const dash=()=>'<span class="dash">–</span>';
+  function parseAllergens(t){
+    return t.replace(/\(([^)]*)\)/g,function(_,p){
+      return p.split(',').map(function(g){
+        g=g.trim();
+        if(!g) return '';
+        if(g.indexOf('-')>-1){
+          var a=g.split('-')[0].trim(), b=g.split('-')[1].trim();
+          return sup(a)+dash()+sup(b);
+        }
+        return sup(g);
+      }).filter(Boolean).join(sep());
+    });
+  }
+  function clean(arr){return arr.map(function(s){return (s||'').replace(/\s+/g,' ').trim();}).filter(Boolean);}
+  function listHTML(arr){return clean(arr).map(function(it){return '<li>'+parseAllergens(it)+'</li>';}).join('');}
+  function fileToDataURL(f){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=rej;r.readAsDataURL(f);});}
+  async function waitImages(root){
+    var imgs=[].slice.call(root.querySelectorAll('img'));
+    await Promise.all(imgs.map(function(img){
+      if(img.decode){ return img.decode().catch(function(){}); }
+      return new Promise(function(ok){ if(img.complete) ok(); else img.onload=ok; });
+    }));
+  }
+
+  /* ====== Editor ====== */
+  function mountEditable(id, arrayRef){
+    var ol=document.getElementById(id);
+    var container=ol.parentElement;
+    ol.innerHTML='';
+    arrayRef.forEach(function(txt,i){
+      var li=document.createElement('li');
+      li.textContent=txt;
+      li.contentEditable=true;
+
+      li.addEventListener('blur', function(){
+        var v=li.textContent.replace(/\s+/g,' ').trim();
+        if(v===''){ arrayRef.splice(i,1); buildEditor(); render(); }
+        else{ arrayRef[i]=v; render(); }
+      });
+
+      li.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){
+          e.preventDefault();
+          arrayRef.splice(i+1,0,''); buildEditor();
+          var newLi=ol.querySelectorAll('li')[i+1]; if(newLi) newLi.focus();
+        }
+        if(e.key==='Backspace' && li.textContent.trim()===''){
+          e.preventDefault(); arrayRef.splice(i,1); buildEditor(); render();
+        }
+      });
+
+      ol.appendChild(li);
+    });
+
+    if(!container.querySelector('.add-btn')){
+      var add=document.createElement('button');
+      add.type='button'; add.className='add-btn'; add.textContent='+ Añadir';
+      add.addEventListener('click', function(){
+        arrayRef.push(''); buildEditor();
+        var lis=ol.querySelectorAll('li'); if(lis.length) lis[lis.length-1].focus();
+      });
+      container.insertBefore(add, ol.nextSibling);
+    }
+  }
+
+  function buildEditor(){
+    var ie=document.getElementById('introEdit');
+    ie.textContent=state.intro||'';
+    ie.onblur=function(){ state.intro=ie.innerText.trim(); render(); };
+    mountEditable('primerosEdit', state.primeros);
+    mountEditable('pescadosEdit', state.pescados);
+    mountEditable('carnesEdit',   state.carnes);
+    mountEditable('postresEdit',  state.postres);
+  }
+
+  /* ====== Paginado ====== */
+  function createEmptyPage(){
+    var page=document.createElement('div'); page.className='page';
+    page.innerHTML='<div class="page-header"><img alt="Cabecera"></div>'
+                  +'<div class="page-footer"><img alt="Alérgenos"></div>'
+                  +'<div class="content"></div>';
+    page.querySelector('.page-header img').src=headerSrc||'';
+    page.querySelector('.page-footer img').src=FOOTER_IMG;
+    return page;
+  }
+  function sectionHTML(title, items){
+    var wrap=document.createElement('div'); wrap.className='section';
+    wrap.innerHTML='<h2>'+title+'</h2><div class="columns"><ol>'+listHTML(items)+'</ol></div>';
+    return wrap;
+  }
+  function paginate(){
+    var host=document.getElementById('pagesHost'); host.innerHTML='';
+    if(coverSrc){
+      var cover=document.createElement('div'); cover.className='page';
+      cover.innerHTML='<img style="width:210mm;height:297mm;object-fit:'+ (coverFit==='cover'?'cover':'contain') +';display:block" src="'+coverSrc+'" alt="Portada">';
+      host.appendChild(cover);
+    }
+    var page=createEmptyPage(); host.appendChild(page);
+    function addSec(sec){
+      var cont=page.querySelector('.content');
+      cont.appendChild(sec);
+      if(cont.scrollHeight>cont.clientHeight){
+        cont.removeChild(sec);
+        page=createEmptyPage(); host.appendChild(page);
+        page.querySelector('.content').appendChild(sec);
+      }
+    }
+    [ sectionHTML('Primeros', state.primeros),
+      sectionHTML('Segundos – Pescados', state.pescados),
+      sectionHTML('Segundos – Carnes', state.carnes),
+      sectionHTML('Postres', state.postres)
+    ].forEach(addSec);
+
+    if(state.intro && state.intro.trim()){
+      var lastPage=host.querySelector('.page:last-child');
+      var lastCont=lastPage.querySelector('.content');
+      lastCont.classList.add('has-note');
+      var wrap=document.createElement('div'); wrap.className='pinned-note';
+      var note=document.createElement('div'); note.className='postit'; note.textContent=state.intro.trim();
+      wrap.appendChild(note); lastCont.appendChild(wrap);
+    }
+  }
+
+  /* ====== Render ====== */
+  function render(){
+    document.documentElement.style.setProperty('--theme', theme);
+    document.documentElement.style.setProperty('--bg', document.getElementById('bgColor').value || '#ffffff');
+    paginate();
+  }
+
+  /* ====== Export ====== */
+  document.getElementById('pdfBtn').addEventListener('click', async function(){
+    try{
+      var host=document.getElementById('pagesHost');
+      await waitImages(host);
+      var opt={margin:0,filename:'menu-turistico.pdf',image:{type:'jpeg',quality:0.98},
+        html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
+      await html2pdf().set(opt).from(host).save();
+    }catch(e){ alert('Si falla la descarga directa, usa Imprimir → Guardar como PDF.'); window.print(); }
+  });
+
+  document.getElementById('imgBtn').addEventListener('click', async function(){
+    var host=document.getElementById('pagesHost');
+    await waitImages(host);
+    var fmt=document.getElementById('imgFormat').value;
+    var canvas=await html2canvas(host,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+    canvas.toBlob(function(blob){
+      if(!blob){alert('No se pudo generar la imagen.');return;}
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=(fmt==='png'?'menu-turistico.png':'menu-turistico.jpg');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); },1200);
+    }, fmt==='png'?'image/png':'image/jpeg', fmt==='png'?undefined:0.92);
+  });
+
+  /* ====== Controles ====== */
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    if(!confirm('¿Restaurar base?')) return;
+    state=JSON.parse(JSON.stringify(BASE)); buildEditor(); render();
+  });
+  document.getElementById('headerSelect').addEventListener('change',function(e){
+    var v=e.target.value, f=document.getElementById('headerFile');
+    if(v==='file'){ f.style.display='inline-block'; f.click(); return; }
+    f.style.display='none'; headerSrc=v; render();
+  });
+  document.getElementById('headerFile').addEventListener('change',async function(e){
+    var file=e.target.files[0]; if(!file) return; headerSrc=await fileToDataURL(file); render();
+  });
+  document.getElementById('coverSelect').addEventListener('change',function(e){
+    var v=e.target.value, f=document.getElementById('coverFile');
+    if(v==='file'){ f.style.display='inline-block'; f.click(); return; }
+    f.style.display='none'; coverSrc=v; render();
+  });
+  document.getElementById('coverFile').addEventListener('change',async function(e){
+    var file=e.target.files[0]; if(!file) return; coverSrc=await fileToDataURL(file); render();
+  });
+  document.getElementById('coverFit').addEventListener('change',function(e){ coverFit=e.target.value; render(); });
+  document.getElementById('themeColor').addEventListener('input',function(e){ theme=e.target.value; render(); });
+  document.getElementById('bgColor').addEventListener('input',function(){ render(); });
+
+  /* init */
+  buildEditor();
+  render();
+})();
+</script>
+</body>
+</html>
