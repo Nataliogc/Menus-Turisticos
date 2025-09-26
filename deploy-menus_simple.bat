@@ -1,73 +1,38 @@
 @echo off
 setlocal EnableExtensions
 
-rem === Configura tu repo y rama ===
 set "REPO_URL=https://github.com/Nataliogc/Menus-Turisticos.git"
 set "BRANCH=main"
-
-rem Mensaje de commit (opcional como primer argumento)
 set "MSG=%~1"
 if "%MSG%"=="" set "MSG=Actualizacion Menus Turisticos"
 
-rem (OPCIONAL) Token para activar Pages via API
-rem set GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-rem --- Ir a la carpeta del script (soporta espacios/puntos) ---
 pushd "%~dp0"
 
-rem --- Comprobaciones básicas ---
-where git >nul 2>&1 || (echo [ERROR] Git no esta en PATH. Instala Git for Windows. & pause & exit /b 1)
-if not exist "index.html" (echo [ERROR] No se encontro index.html en %CD% & pause & exit /b 1)
+where git >nul 2>&1 || (echo [ERROR] Git no esta en PATH & popd & pause & exit /b 1)
+if not exist "index.html" (echo [ERROR] No se encontro index.html en %CD% & popd & pause & exit /b 1)
 
-rem --- Inicializar repo si hace falta ---
-git rev-parse --is-inside-work-tree >nul 2>&1
-if errorlevel 1 (
-  echo [INFO] Inicializando repositorio Git en %CD% ...
-  git init || (echo [ERROR] git init & popd & pause & exit /b 1)
-)
+:: init si no hay repo
+git rev-parse --is-inside-work-tree >nul 2>&1 || git init
 
-rem --- Configurar remote 'origin' si falta ---
-git remote get-url origin >nul 2>&1
-if errorlevel 1 (
-  echo [INFO] Configurando remote origin -> %REPO_URL%
-  git remote add origin "%REPO_URL%" || (echo [ERROR] No se pudo agregar remote origin & popd & pause & exit /b 1)
-)
+:: remote origin si falta
+git remote get-url origin >nul 2>&1 || git remote add origin "%REPO_URL%"
 
-rem --- Asegurar rama de trabajo ---
+:: rama de trabajo
 git checkout "%BRANCH%" 2>nul || git checkout -b "%BRANCH%"
 
-rem --- Traer cambios remotos (si existen) sin romper primer push ---
-git fetch origin "%BRANCH%" >nul 2>&1
-git rev-parse --verify "origin/%BRANCH%" >nul 2>&1 && git pull --rebase origin "%BRANCH%"
-
-rem --- Añadir y commitear ---
+:: 1) guarda tus cambios locales en un commit (si los hay)
 git add -A
 git commit -m "%MSG%" >nul 2>&1
-if errorlevel 1 (
-  echo [INFO] No hay cambios nuevos que commitear.
-) else (
-  echo [INFO] Commit creado.
+
+:: 2) trae remoto y re-aplica tu commit encima (evita “untracked would be overwritten” y non-FF)
+git fetch origin
+git pull --rebase origin "%BRANCH%" || (
+  echo [AVISO] Rebase no aplicable; intentando sincronizar con estrategia "ours"...
+  git merge -s ours origin/%BRANCH% -m "Merge ours vs origin/%BRANCH% (auto)"
 )
 
-rem --- Subir a GitHub ---
+:: 3) sube
 git push -u origin "%BRANCH%" || (echo [ERROR] Push fallo. Revisa credenciales/token. & popd & pause & exit /b 1)
-
-rem --- Activar GitHub Pages (opcional) ---
-if not "%GH_TOKEN%"=="" (
-  where curl >nul 2>&1 && (
-    echo [INFO] Activando/ajustando GitHub Pages...
-    curl -s -X POST "https://api.github.com/repos/Nataliogc/Menus-Turisticos/pages" ^
-      -H "Authorization: Bearer %GH_TOKEN%" ^
-      -H "Accept: application/vnd.github+json" ^
-      -H "X-GitHub-Api-Version: 2022-11-28" ^
-      -d "{\"source\":{\"branch\":\"%BRANCH%\",\"path\":\"/\"}}" >nul
-    curl -s -X PUT "https://api.github.com/repos/Nataliogc/Menus-Turisticicos/pages" ^
-      -H "Authorization: Bearer %GH_TOKEN%" ^
-      -H "Accept: application/vnd.github+json" ^
-      -H "X-GitHub-Api-Version: 2022-11-28" ^
-      -d "{\"source\":{\"branch\":\"%BRANCH%\",\"path\":\"/\"}}" >nul
-  )
-)
 
 echo.
 echo [OK] Publicado. URL: https://nataliogc.github.io/Menus-Turisticos/
