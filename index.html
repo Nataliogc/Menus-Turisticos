@@ -5,31 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Menús Turísticos</title>
 <style>
-  :root{--theme:#0b3d20;--bg:#ffffff;--headerH:30mm;--footerH:24mm}
+  :root{--theme:#0b3d20;--bg:#ffffff;--headerH:30mm;--footerH:35mm}
   *{box-sizing:border-box}
   body{margin:0;background:#f4f5f7;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
 
   /* A4 sin márgenes */
   @page{size:A4;margin:0;}
   @media print{
-    .app{display:none !important;}
     .page{page-break-after:always;}
     body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
   }
 
-  /* Controles */
-  .app{max-width:1024px;margin:10px auto;padding:0 12px}
-  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
-  .controls select,.controls input[type=file],.controls input[type=color]{padding:6px;border:1px solid #ccc;border-radius:6px;background:#fff}
-  .btn{padding:9px 14px;border-radius:8px;border:0;background:#0b7a44;color:#fff;font-weight:600;cursor:pointer}
-  .btn.secondary{background:#2d6cdf}
-  .btn.warn{background:#b23b3b}
+  /* ===== Interfaz de trabajo ===== */
+  :root{--ui-bg:#f3f4f6;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;--brand:#0b7a44;--brand-d:#09633a;--brand-soft:#e8f5ee;--r:12px}
+  body{background:var(--ui-bg);color:var(--ink)}
+  .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 24px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:16px}
+  .brand small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
+  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0f8f50,#0b3d20);display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(11,61,32,.3)}
+  .logo svg{width:19px;height:19px}
+  .top-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .status{font-size:12px;color:var(--brand);font-weight:600;min-width:80px;text-align:right}
+  .btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 14px/1 inherit;font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;white-space:nowrap}
+  .btn:hover{background:#f9fafb;border-color:#d1d5db}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(11,122,68,.2)}
+  .btn svg{width:17px;height:17px;flex:none}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 1px 3px rgba(11,122,68,.35)}
+  .btn.primary:hover{background:var(--brand-d);border-color:var(--brand-d)}
+  .btn.danger{color:#b42318}
+  .btn.danger:hover{background:#fef3f2;border-color:#fecdca}
+  .btn:disabled{opacity:.6;cursor:wait}
+
+  /* Versión y novedades */
+  .ver{margin-left:6px;padding:2px 8px;border-radius:999px;border:1px solid #cfe9db;background:var(--brand-soft);color:var(--brand);font:700 11px/1.4 inherit;font-family:inherit;cursor:pointer;vertical-align:1px}
+  .ver:hover{background:#d6efe1}
+  .news{position:absolute;top:64px;left:24px;z-index:60;width:min(420px,calc(100vw - 48px));max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:0 18px 40px rgba(16,24,40,.18);padding:6px 0}
+  .news[hidden]{display:none}
+  .news h4{margin:0;padding:10px 16px 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .news .rel{padding:10px 16px;border-top:1px solid var(--line)}
+  .news .rel b{font-size:14px}
+  .news .rel span{color:var(--muted);font-size:12px;margin-left:6px}
+  .news ul{margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.5;color:#374151}
+  .news .rel.current b::after{content:"actual";margin-left:8px;padding:1px 7px;border-radius:999px;background:var(--brand-soft);color:var(--brand);font-size:11px}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,40%);gap:20px;padding:20px 24px;max-width:1800px;margin:0 auto;align-items:start}
+  .work{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card-head{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .card-title{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#374151}
+  .card-head .hint{margin-left:auto;font-size:12px;color:var(--muted)}
+  .card-body{padding:14px 16px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
+
+  .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+  .field select{appearance:none;-webkit-appearance:none;height:38px;padding:0 34px 0 11px;border:1px solid var(--line);border-radius:9px;color:var(--ink);font:500 14px inherit;font-family:inherit;cursor:pointer;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center}
+  .field select:hover{border-color:#d1d5db}
+  .field select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,122,68,.15)}
+  .swatches{display:flex;gap:8px}
+  .swatch{flex:1;display:flex;align-items:center;gap:8px;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:9px;color:var(--ink);font-weight:500;font-size:13px;cursor:pointer;background:#fff}
+  .swatch:hover{border-color:#d1d5db}
+  .swatch input[type=color]{width:22px;height:22px;border:0;padding:0;background:none;cursor:pointer;flex:none}
+  .swatch input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  .swatch input[type=color]::-webkit-color-swatch{border:1px solid rgba(0,0,0,.15);border-radius:50%}
+  .swatch input[type=color]::-moz-color-swatch{border:1px solid rgba(0,0,0,.15);border-radius:50%}
+  .check{display:flex;align-items:center;gap:8px;height:38px;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer}
+  .check input{width:16px;height:16px;accent-color:var(--brand)}
+  .card-foot{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:#fafafa;border-radius:0 0 var(--r) var(--r)}
+  .card-foot .btn.danger{margin-left:auto}
+
+  .note-edit{min-height:64px;padding:12px 14px;border-radius:10px;background:#fffbe6;border:1px solid #f1e2a0;font-family:Georgia,"Times New Roman",serif;font-size:14.5px;line-height:1.55;outline:none;transition:box-shadow .15s}
+  .note-edit:focus{box-shadow:0 0 0 3px rgba(234,179,8,.25);border-color:#e3c95a}
+
+  .sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+  .count{margin-left:auto;font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-soft);padding:3px 9px;border-radius:999px}
+  .sec-card ol{list-style:none;counter-reset:n;margin:0;padding:0}
+  .sec-card li{position:relative;counter-increment:n;padding:6px 10px 6px 36px;border-radius:8px;font-size:14px;line-height:1.4;outline:none;cursor:text;transition:background .12s}
+  .sec-card li::before{content:counter(n);position:absolute;left:8px;top:7px;width:20px;text-align:right;font-size:11px;font-weight:600;color:#9ca3af;font-variant-numeric:tabular-nums}
+  .sec-card li:hover{background:#f6f7f9}
+  .sec-card li:focus{background:#f0fbf5;box-shadow:inset 0 0 0 1.5px var(--brand)}
+  .sec-card ul{list-style:none;margin:0;padding:0}
+  .sec-card ul li::before{content:"";left:16px;top:14px;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+  .title-edit{padding:8px 12px;margin-bottom:10px;border:1px dashed #d1d5db;border-radius:9px;font-weight:700;font-size:14px;letter-spacing:.03em;text-transform:uppercase;outline:none}
+  .title-edit:focus{border-style:solid;border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,122,68,.15)}
+
+  /* Bloque de condiciones en la carta */
+  .conds{border:1.5px solid var(--theme);border-radius:6px;padding:10px 14px 8px;margin-top:4px}
+  .conds-title{margin:0 0 6px;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--theme)}
+  .conds ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.45}
+  .conds li{margin:3px 0}
+  .conds li::marker{color:var(--theme)}
+  .add-btn{margin-top:8px;width:100%;height:36px;border:1.5px dashed #d1d5db;border-radius:9px;background:transparent;color:var(--muted);font:600 13px inherit;font-family:inherit;cursor:pointer;transition:all .15s}
+  .add-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+  .tip{font-size:12px;color:var(--muted);margin:0;padding:0 4px}
+  kbd{font:600 11px ui-monospace,Consolas,monospace;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:#374151}
+
+  .preview{position:sticky;top:78px;max-height:calc(100vh - 98px);display:flex;flex-direction:column;overflow:hidden}
+  .preview-scroll{flex:1;overflow:auto;background:#e8eaee;padding:18px;border-radius:0 0 var(--r) var(--r)}
+  #previewScaler{position:relative;height:var(--h,auto)}
+  #pagesHost{width:210mm;transform:scale(var(--s,1));transform-origin:top left;margin-left:var(--ml,0)}
+
+  @media (max-width:1150px){
+    .layout{grid-template-columns:1fr}
+    .preview{position:static;max-height:none}
+  }
+
+  /* Al exportar: páginas a tamaño real */
+  body.exporting .preview{position:static;max-height:none;overflow:visible}
+  body.exporting .preview-scroll{overflow:visible;padding:0}
+  body.exporting #previewScaler{height:auto}
+  body.exporting #pagesHost{transform:none;margin-left:0}
+
+  /* Al imprimir: solo las páginas */
+  @media print{
+    .topbar,.work,.preview .card-head,.news{display:none !important}
+    body{background:#fff}
+    .layout{display:block;padding:0;max-width:none}
+    .preview{position:static;max-height:none;overflow:visible;border:0;box-shadow:none;border-radius:0}
+    .preview-scroll{overflow:visible;padding:0;background:none}
+    #previewScaler{height:auto}
+    #pagesHost{transform:none;margin:0}
+    #pagesHost .page{margin:0;box-shadow:none}
+  }
 
   /* Páginas */
   .page{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);position:relative;overflow:hidden}
   .page-header{position:absolute;top:0;left:0;width:210mm;height:var(--headerH);background:#fff;z-index:5}
   .page-header img{width:100%;height:100%;object-fit:cover;object-position:center}
-  .page-footer{position:absolute;left:0;bottom:0;width:210mm;height:var(--footerH);background:#fff;z-index:5;display:flex;align-items:center;justify-content:center;padding:0 6mm}
+  .page-footer{position:absolute;left:0;bottom:0;width:210mm;height:var(--footerH);background:#fff;z-index:5;display:flex;align-items:flex-end;justify-content:center;padding:0 8mm 5mm}
   .page-footer img{width:100%;height:100%;object-fit:contain}
   .content{position:absolute;left:0;right:0;top:var(--headerH);bottom:var(--footerH);padding:8mm;overflow:hidden}
 
@@ -40,6 +144,11 @@
   .columns ol{margin:0 0 6px 1.2rem; padding:0}
   .columns li{margin:2px 0; break-inside:avoid; page-break-inside:avoid}
   .columns ol li::marker{font-size:10px;color:#757575;font-weight:600}
+  /* Reparto del espacio sobrante (--fill de 0 a 1, lo calcula el paginado) */
+  .content .columns li{margin:calc(2px + 8px * var(--fill,0)) 0}
+  .content .section{margin-bottom:calc(12px + 60px * var(--fill,0))}
+  .content h2{margin-bottom:calc(6px + 10px * var(--fill,0))}
+  .content .section:last-child{margin-bottom:0}
 
   /* Alérgenos (superíndices pequeños) */
   .sup{font-size:11px;line-height:1;vertical-align:super;color:#0b2f1b;font-weight:900}
@@ -57,109 +166,120 @@
   .postit::after{content:""; position:absolute; right:10px; top:8px; width:16px; height:16px; background:linear-gradient(135deg, rgba(0,0,0,.08), rgba(0,0,0,0)) no-repeat; clip-path:polygon(0 0,100% 0,100% 100%); opacity:.35}
   .content.has-note{ padding-bottom:42mm }
 
-  /* Editor */
-  .editor{border:1px solid #ddd;background:#fff;border-radius:10px;padding:12px;margin:8px auto 14px}
-  .editor h4{margin:8px 0 6px}
-  .editor .columns{column-gap:18px}
-  .editor ol{margin:0 0 6px 1.2rem;padding:0}
-  .editor li{margin:2px 0;outline:none}
-  .add-btn{margin:4px 0 8px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer}
-  .tip{font-size:12px;color:#666;margin:6px 0 0}
-  .btn:disabled{opacity:.6;cursor:wait}
-  .status{font-size:12px;color:#0b7a44;min-width:90px}
-
   /* Separación de páginas solo en pantalla (no afecta a PDF/imagen/impresión) */
   @media screen{
-    #pagesHost{padding-bottom:20px}
-    #pagesHost .page{margin:0 auto 14px;box-shadow:0 2px 14px rgba(0,0,0,.15)}
-    body.exporting #pagesHost{padding-bottom:0}
-    body.exporting #pagesHost .page{margin:0 auto;box-shadow:none}
+    #pagesHost .page{margin:0 0 16px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+    body.exporting #pagesHost .page{margin:0;box-shadow:none}
   }
 </style>
 </head>
 <body>
 
-<div class="app">
-  <div class="controls">
-    <label>Cabecera:
-      <select id="headerSelect">
-        <option value="">Sin cabecera</option>
-        <option value="img/Guadina.png" selected>Guadina.png</option>
-        <option value="img/cumbria.png">cumbria.png</option>
-        <option value="file">Elegir archivo…</option>
-      </select>
-      <input type="file" id="headerFile" accept="image/*" style="display:none">
-    </label>
-
-    <label>Portada:
-      <select id="coverSelect">
-        <option value="" selected>Sin portada</option>
-        <option value="img/Portada Guadiana.png">Portada Guadiana.png</option>
-        <option value="img/Portada Cumbria.png">Portada Cumbria.png</option>
-        <option value="img/Portada Combinada.png">Portada Combinada.png</option>
-        <option value="file">Elegir archivo…</option>
-      </select>
-      <input type="file" id="coverFile" accept="image/*" style="display:none">
-    </label>
-
-    <label>Ajuste portada:
-      <select id="coverFit">
-        <option value="cover">Cubrir</option>
-        <option value="contain" selected>Contener</option>
-      </select>
-    </label>
-
-    <label>Color títulos: <input id="themeColor" type="color" value="#0b3d20"></label>
-    <label>Fondo: <input id="bgColor" type="color" value="#ffffff"></label>
-
-    <button id="pdfBtn" class="btn" type="button">Descargar PDF</button>
-
-    <label>Imagen:
-      <select id="imgFormat">
-        <option value="png" selected>PNG</option>
-        <option value="jpeg">JPG</option>
-      </select>
-    </label>
-    <label style="display:flex;gap:6px;align-items:center">
-      <input type="checkbox" id="perPage" checked>
-      <span>Una imagen por página</span>
-    </label>
-    <button id="imgBtn" class="btn secondary" type="button">Descargar imagen</button>
-
-    <button id="printBtn" class="btn secondary" type="button">Imprimir</button>
-    <button id="exportJsonBtn" class="btn secondary" type="button">Guardar menú (.json)</button>
-    <button id="importJsonBtn" class="btn secondary" type="button">Abrir menú (.json)</button>
-    <input type="file" id="importJsonFile" accept="application/json,.json" style="display:none">
-
-    <button id="resetBtn" class="btn warn" type="button">Restaurar base</button>
+<header class="topbar">
+  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></div><div>Menús Turísticos <button id="verBtn" class="ver" type="button" title="Ver novedades"></button><small>Editor de carta imprimible A4</small></div></div>
+  <div id="newsPanel" class="news" hidden><h4>Historial de versiones</h4><div id="newsList"></div></div>
+  <div class="top-actions">
     <span id="saveStatus" class="status"></span>
+    <button id="printBtn" class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg><span class="lbl">Imprimir</span></button>
+    <button id="imgBtn" class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span class="lbl">Imagen</span></button>
+    <button id="pdfBtn" class="btn primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span class="lbl">Descargar PDF</span></button>
   </div>
+</header>
 
-  <!-- Editor -->
-  <div class="editor" id="editor">
-    <div><strong>Nota final (post-it):</strong></div>
-    <div id="introEdit" contenteditable="true" style="border:1px dashed #ccc;border-radius:6px;padding:8px;margin-bottom:8px"></div>
+<main class="layout">
+  <div class="work" id="editor">
 
-    <div class="columns">
-      <div>
-        <h4>PRIMEROS</h4>
-        <ol id="primerosEdit"></ol>
+    <section class="card">
+      <div class="card-head"><h3 class="card-title">Diseño</h3></div>
+      <div class="card-body settings">
+        <label class="field">Cabecera
+          <select id="headerSelect">
+            <option value="">Sin cabecera</option>
+            <option value="img/Guadina.png" selected>Hotel Guadiana</option>
+            <option value="img/cumbria.png">Cumbria</option>
+            <option value="file">Elegir archivo…</option>
+          </select>
+          <input type="file" id="headerFile" accept="image/*" hidden>
+        </label>
+        <label class="field">Portada
+          <select id="coverSelect">
+            <option value="" selected>Sin portada</option>
+            <option value="img/Portada Guadiana.png">Guadiana</option>
+            <option value="img/Portada Cumbria.png">Cumbria</option>
+            <option value="img/Portada Combinada.png">Combinada</option>
+            <option value="file">Elegir archivo…</option>
+          </select>
+          <input type="file" id="coverFile" accept="image/*" hidden>
+        </label>
+        <label class="field">Ajuste de portada
+          <select id="coverFit">
+            <option value="cover">Cubrir la página</option>
+            <option value="contain" selected>Mostrar entera</option>
+          </select>
+        </label>
+        <div class="field">Colores
+          <div class="swatches">
+            <label class="swatch"><input id="themeColor" type="color" value="#0b3d20">Títulos</label>
+            <label class="swatch"><input id="bgColor" type="color" value="#ffffff">Fondo</label>
+          </div>
+        </div>
+        <label class="field">Formato de imagen
+          <select id="imgFormat">
+            <option value="png" selected>PNG (máxima calidad)</option>
+            <option value="jpeg">JPG (más ligero)</option>
+          </select>
+        </label>
+        <div class="field">Exportar imagen
+          <label class="check"><input type="checkbox" id="perPage" checked>Una imagen por página</label>
+        </div>
       </div>
-      <div>
-        <h4>SEGUNDOS – PESCADOS</h4>
-        <ol id="pescadosEdit"></ol>
-        <h4>SEGUNDOS – CARNES</h4>
-        <ol id="carnesEdit"></ol>
-        <h4>POSTRES</h4>
-        <ol id="postresEdit"></ol>
+      <div class="card-foot">
+        <button id="exportJsonBtn" class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar menú</button>
+        <button id="importJsonBtn" class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Abrir menú</button>
+        <input type="file" id="importJsonFile" accept="application/json,.json" hidden>
+        <button id="resetBtn" class="btn danger" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Restaurar base</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="card-title">Nota final</h3><span class="hint">Aparece como post-it al pie de la última página</span></div>
+      <div class="card-body"><div id="introEdit" class="note-edit" contenteditable="true"></div></div>
+    </section>
+
+    <section class="card sec-card">
+      <div class="card-head"><span class="dot"></span><h3 class="card-title">Condiciones del menú</h3><span class="hint">Se imprimen tras los postres, en la última página</span><span class="count" id="condicionesCount" style="margin-left:10px">0</span></div>
+      <div class="card-body">
+        <div id="condTituloEdit" class="title-edit" contenteditable="true" title="Título del bloque"></div>
+        <ul id="condicionesEdit"></ul>
+      </div>
+    </section>
+
+    <div class="sections">
+      <div class="card sec-card">
+        <div class="card-head"><span class="dot"></span><h3 class="card-title">Primeros</h3><span class="count" id="primerosCount">0</span></div>
+        <div class="card-body"><ol id="primerosEdit"></ol></div>
+      </div>
+      <div class="card sec-card">
+        <div class="card-head"><span class="dot"></span><h3 class="card-title">Segundos · Pescados</h3><span class="count" id="pescadosCount">0</span></div>
+        <div class="card-body"><ol id="pescadosEdit"></ol></div>
+      </div>
+      <div class="card sec-card">
+        <div class="card-head"><span class="dot"></span><h3 class="card-title">Segundos · Carnes</h3><span class="count" id="carnesCount">0</span></div>
+        <div class="card-body"><ol id="carnesEdit"></ol></div>
+      </div>
+      <div class="card sec-card">
+        <div class="card-head"><span class="dot"></span><h3 class="card-title">Postres</h3><span class="count" id="postresCount">0</span></div>
+        <div class="card-body"><ol id="postresEdit"></ol></div>
       </div>
     </div>
-    <p class="tip">Clic para editar. <b>Enter</b> añade; <b>Backspace</b> en un plato vacío lo elimina. Los vacíos se omiten en el documento final. Los cambios se guardan solos en este navegador.</p>
+    <p class="tip">Clic en un plato para editarlo · <kbd>Enter</kbd> añade otro debajo · <kbd>Retroceso</kbd> en un plato vacío lo elimina · Los alérgenos van entre paréntesis: <b>(1,3,7)</b> · Todo se guarda solo en este navegador.</p>
   </div>
-</div>
 
-<!-- Páginas generadas -->
-<div id="pagesHost"></div>
+  <aside class="card preview">
+    <div class="card-head"><span class="dot"></span><h3 class="card-title">Vista previa</h3><span class="hint" id="pageCount"></span></div>
+    <div class="preview-scroll"><div id="previewScaler"><div id="pagesHost"></div></div></div>
+  </aside>
+</main>
 
 <!-- Librerías para exportar -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
@@ -167,15 +287,45 @@
 
 <script>
 (function(){
+  /* === Versión ===
+     Cada cambio en el programa añade una entrada nueva ARRIBA de esta lista.
+     La primera entrada es la versión actual (también en CHANGELOG.md). */
+  const CHANGELOG=[
+    {v:'2.7', d:'25/11/2026', items:['El espacio sobrante de las páginas intermedias se reparte entre platos y secciones: ya no quedan huecos en blanco al final']},
+    {v:'2.6', d:'25/11/2026', items:['Pie de alérgenos alineado con los márgenes del contenido para un diseño más equilibrado']},
+    {v:'2.5', d:'25/11/2026', items:['Pie de alérgenos recortado y a todo el ancho de la página, pegado al borde inferior']},
+    {v:'2.4', d:'25/11/2026', items:['Nuevo bloque «Condiciones de elección del menú» en la última página, editable desde el editor','Corregido el botón «Añadir» que no funcionaba tras restaurar o abrir un menú']},
+    {v:'2.3', d:'25/11/2026', items:['Nueva imagen de alérgenos en el pie de página, más grande y nítida']},
+    {v:'2.2', d:'24/11/2026', items:['Nueva nota final de despedida, distinta del texto de la portada, con aviso de alérgenos']},
+    {v:'2.1', d:'24/11/2026', items:['Número de versión visible en la cabecera','Historial de cambios al pulsar sobre la versión']},
+    {v:'2.0', d:'24/11/2026', items:['Nueva interfaz moderna con barra superior fija','Vista previa en vivo junto al editor','Tarjetas por sección con contador de platos','Corregido el título de sección separado de sus platos en el editor']},
+    {v:'1.1', d:'24/11/2026', items:['Guardado automático en el navegador','Guardar y abrir menús en archivo .json','Botón Imprimir','Las secciones largas continúan en la página siguiente','El post-it ya no tapa platos','Corregida la pérdida de texto al pulsar Enter en el editor']},
+    {v:'1.0', d:'20/05/2026', items:['Versión inicial: editor, cabecera, portada y exportación a PDF e imagen']}
+  ];
+  const APP_VERSION=CHANGELOG[0].v;
+  (function(){
+    const btn=document.getElementById('verBtn'), panel=document.getElementById('newsPanel');
+    btn.textContent='v'+APP_VERSION;
+    document.title='Menús Turísticos · v'+APP_VERSION;
+    const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    document.getElementById('newsList').innerHTML=CHANGELOG.map((r,i)=>
+      '<div class="rel'+(i===0?' current':'')+'"><b>v'+esc(r.v)+'</b><span>'+esc(r.d)+'</span><ul>'+r.items.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>').join('');
+    btn.onclick=e=>{e.stopPropagation(); panel.hidden=!panel.hidden;};
+    document.addEventListener('click',e=>{ if(!panel.hidden && !panel.contains(e.target)) panel.hidden=true; });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') panel.hidden=true; });
+  })();
+
   /* === Config inicial === */
-  const FOOTER_IMG="img/Alergenos.jpg";
+  const FOOTER_IMG="img/Alergenos-pie.png";
   let theme='#0b3d20', headerSrc="img/Guadina.png", coverSrc="", coverFit="contain";
 
   const BASE={
-    intro:"Honrados sean, valientes viajeros. No busquéis en estos manjares un simple sustento, sino un banquete digno de vuestras andanzas. Que esta mesa sea el inicio de una nueva aventura, compartida con honra y buena compañía. ¡Buen provecho!",
+    intro:"Y así, saciado el cuerpo y contento el ánimo, tiempo es de dar descanso a la espada y reposo a la panza. Si algún manjar os dejó con deseo, pedidlo sin reparo, que en esta venta no se despide a nadie con hambre. Y si alguna alergia o intolerancia os aqueja, decídselo a nuestro personal, que os guiará como fiel escudero.",
     primeros:["Sopa Juliana","Sopa de picadillo (5,7)","Sopa de pescado (1,5)","Crema de Reina (5,3,7)","Crema reina mejillón (1,3,4,5)","Crema de verduras con sus costrones (3,5)","Sopa de fideos con jamón (5)","Crema de calabaza con jamón frito y queso (3)","Judías estofadas","Patatas guisadas con calamar (4)","Cocido madrileño","Potaje de vigilia (1,5)","Patatas guisadas con ternera","Judías con perdiz","Paella mixta (1,4,14,6)","Fideua de ibéricos (5)","Arroz a la milanesa (5,3,14)","Arroz caldoso con calamar (4,6,14)","Pisto manchego con huevo frito (7)","Asadillo con huevo y atún (7,1,14)","Migas manchegas con huevo","Gazpacho andaluz (5,14)","Entremeses variados","Ensaladilla rusa con salmón (1,3,7)","Ensalada César (5,1,3,11,14)","Ensalada de tomate, cebolla roja y bonito (1,14)","Carpaccio de tomate, mozzarella y mango (3,14)","Tallarines boloñesa (5,14,3)","Lasaña de verduras (3,5)","Macarrones pomodoro (5)","Tortilla de patatas con ensalada (7)","Menestra de verduras con ajo y jamón","Judías verdes con ensalada (7,1)"],
     pescados:["Bacalao vizcaína (1,5)","Palometa con tomate (1)","Rollitos de lenguado al limón (1,3,5,14)","Merluza romana o salsa verde (1,5,4,6)","Ternera de mar con ajo y perejil (1)","Filete de corvina al azafrán (1,4,5)","Dorada donostierra (1,14)","Bonito en cama de crema de pisto (1)","Salmón a la naranja (1,3,14)","Albóndigas de sepia y gambas (1,5)"],
     carnes:["Jamón de cerdo asado","Ternera braseada con patatas panadera (14)","Caldereta de cordero","Muslo de pollo deshuesado a la brasa","Cachopo de ternera con jamón y queso (3,5,7,14)","Pechuguitas de pollo a la pimienta (11,3,14)","Ragú de ternera en salsa de verduras","Magro de cerdo con tomate","Escalopes de ternera al limón (5)","Pollo en pepitoria (2,7)","Muslo de pollo asado al limón (14)","Magras con pisto"],
+    condTitulo:"Condiciones de elección del menú",
+    condiciones:["A elegir un primer plato, un segundo plato (carne o pescado) y un postre, siendo el menú único para todo el grupo.","Bebidas incluidas: agua mineral y vino blanco y tinto de la casa durante el servicio.","La elección del menú, así como las alergias, intolerancias y necesidades alimentarias especiales, deberá comunicarse con una antelación mínima de 7 días.","El número definitivo de comensales deberá confirmarse 72 horas antes del servicio, siendo este el mínimo a facturar.","Las consumiciones no incluidas se facturarán por separado."],
     postres:["Flan casero (7,3)","Natillas caseras (7,3)","Pudin de chocolate (1,5,7)","Helado de vasito (7,14)","Babarois al limón (7,14)","Pan de calatrava (3,5,14)","Vasito Mousse de fresa (14)","Vasito Mousse chocolate y nata (14)","Tarta de queso y frutos rojos (1,14)","Arroz con leche (1,5,7)","Tarta de la casa (7,14)"]
   };
   let state=JSON.parse(JSON.stringify(BASE));
@@ -196,7 +346,7 @@
 
   /* === Editor === */
   function placeCaretAtEnd(el){const r=document.createRange(); r.selectNodeContents(el); r.collapse(false); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r);}
-  function mountEditable(id, arrayRef){
+  function mountEditable(id, arrayRef, addLabel){
     const ol=document.getElementById(id), box=ol.parentElement; ol.innerHTML='';
     arrayRef.forEach((txt,i)=>{
       const li=document.createElement('li'); li.textContent=txt; li.contentEditable=true;
@@ -209,11 +359,11 @@
       });
       ol.appendChild(li);
     });
-    if(!box.querySelector('.add-btn')){
-      const btn=document.createElement('button'); btn.className='add-btn'; btn.type='button'; btn.textContent='+ Añadir';
-      btn.onclick=()=>{arrayRef.push(''); buildEditor(); const lis=ol.querySelectorAll('li'); if(lis.length) lis[lis.length-1].focus();};
-      box.insertBefore(btn, ol.nextSibling);
-    }
+    const cnt=document.getElementById(id.replace('Edit','Count')); if(cnt) cnt.textContent=clean(arrayRef).length;
+    let btn=box.querySelector('.add-btn');
+    if(!btn){ btn=document.createElement('button'); btn.className='add-btn'; btn.type='button'; box.insertBefore(btn, ol.nextSibling); }
+    btn.textContent=addLabel||'+ Añadir plato';
+    btn.onclick=()=>{arrayRef.push(''); buildEditor(); const lis=ol.querySelectorAll('li'); if(lis.length) lis[lis.length-1].focus();};
   }
   function buildEditor(){
     const ie=document.getElementById('introEdit');
@@ -222,6 +372,12 @@
     mountEditable('pescadosEdit', state.pescados);
     mountEditable('carnesEdit',   state.carnes);
     mountEditable('postresEdit',  state.postres);
+    mountEditable('condicionesEdit', state.condiciones, '+ Añadir condición');
+    const te=document.getElementById('condTituloEdit');
+    te.textContent=state.condTitulo||'';
+    te.oninput=()=>{state.condTitulo=te.innerText.replace(/\s+/g,' ').trim();};
+    te.onblur=()=>{state.condTitulo=te.innerText.replace(/\s+/g,' ').trim(); render();};
+    te.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault(); te.blur();} };
   }
 
   /* === Paginado === */
@@ -278,6 +434,15 @@
     add('Segundos – Carnes',state.carnes);
     add('Postres',state.postres);
 
+    const conds=clean(state.condiciones||[]);
+    if(conds.length){
+      const esc=t=>String(t).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+      const box=document.createElement('div'); box.className='section conds';
+      box.innerHTML=(state.condTitulo?'<h3 class="conds-title">'+esc(state.condTitulo)+'</h3>':'')+'<ul>'+conds.map(c=>'<li>'+esc(c)+'</li>').join('')+'</ul>';
+      let c=content(); c.appendChild(box);
+      if(overflows(c) && c.children.length>1){ c.removeChild(box); newPage(); content().appendChild(box); }
+    }
+
     if(state.intro && state.intro.trim()){
       const place=()=>{
         const c=content();
@@ -291,6 +456,17 @@
       let r=place();
       if(overflows(r.c)){ r.c.removeChild(r.wrap); r.c.style.paddingBottom=''; newPage(); place(); }
     }
+
+    // Páginas intermedias: repartir el hueco que queda abajo para que no quede un vacío
+    const contents=[...host.querySelectorAll('.page .content')];
+    contents.slice(0,-1).forEach(c=>{
+      if(!c.querySelector('.section')) return;
+      const set=t=>c.style.setProperty('--fill',t);
+      set(1); if(!overflows(c)) return;
+      let lo=0, hi=1;
+      for(let k=0;k<12;k++){ const m=(lo+hi)/2; set(m); if(overflows(c)) hi=m; else lo=m; }
+      set(lo);
+    });
   }
 
   /* === Guardado automático (en este navegador) === */
@@ -313,7 +489,9 @@
   function applyData(d){
     if(!d || !d.state) return false;
     const st=d.state, arr=a=>Array.isArray(a)?a.map(String):[];
-    state={intro:String(st.intro||''), primeros:arr(st.primeros), pescados:arr(st.pescados), carnes:arr(st.carnes), postres:arr(st.postres)};
+    state={intro:String(st.intro||''), primeros:arr(st.primeros), pescados:arr(st.pescados), carnes:arr(st.carnes), postres:arr(st.postres),
+           condTitulo:(typeof st.condTitulo==='string')?st.condTitulo:BASE.condTitulo,
+           condiciones:Array.isArray(st.condiciones)?arr(st.condiciones):BASE.condiciones.slice()};
     if(d.theme){theme=d.theme; $('themeColor').value=d.theme;}
     if(d.bg) $('bgColor').value=d.bg;
     if(d.coverFit){coverFit=d.coverFit; $('coverFit').value=d.coverFit;}
@@ -321,21 +499,42 @@
     if(d.coverSrc!==null && d.coverSrc!==undefined){coverSrc=d.coverSrc; setSelect($('coverSelect'),d.coverSrc);}
     return true;
   }
-  function loadSaved(){ try{ const raw=localStorage.getItem(STORE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){} }
+  // Notas base antiguas: si el menú guardado aún tiene una, se cambia por la actual
+  const OLD_INTROS=["Honrados sean, valientes viajeros. No busquéis en estos manjares un simple sustento, sino un banquete digno de vuestras andanzas. Que esta mesa sea el inicio de una nueva aventura, compartida con honra y buena compañía. ¡Buen provecho!"];
+  function loadSaved(){
+    try{ const raw=localStorage.getItem(STORE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+    if(OLD_INTROS.includes((state.intro||'').trim())) state.intro=BASE.intro;
+  }
 
   /* === Render === */
   function render(){
     document.documentElement.style.setProperty('--theme', theme);
     document.documentElement.style.setProperty('--bg', document.getElementById('bgColor').value || '#ffffff');
     paginate();
+    fitPreview();
+    ['primeros','pescados','carnes','postres','condiciones'].forEach(k=>{const el=$(k+'Count'); if(el) el.textContent=clean(state[k]||[]).length;});
+    const n=document.querySelectorAll('#pagesHost .page').length;
+    document.getElementById('pageCount').textContent=n+(n===1?' página':' páginas');
     save();
   }
 
+  /* Escala la vista previa al ancho disponible */
+  function fitPreview(){
+    if(document.body.classList.contains('exporting')) return;
+    const outer=document.getElementById('previewScaler'), inner=document.getElementById('pagesHost');
+    const pageW=210*MM, avail=outer.clientWidth||pageW;
+    const sc=Math.min(1, avail/pageW);
+    outer.style.setProperty('--s', sc);
+    outer.style.setProperty('--ml', Math.max(0,(avail-pageW*sc)/2)+'px');
+    outer.style.setProperty('--h', (inner.offsetHeight*sc)+'px');
+  }
+  let rzT; window.addEventListener('resize',()=>{clearTimeout(rzT); rzT=setTimeout(fitPreview,80);});
+
   /* Bloquea los botones mientras se genera un archivo */
   async function busy(btn, fn){
-    const txt=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+    const lbl=btn.querySelector('.lbl')||btn, txt=lbl.textContent; btn.disabled=true; lbl.textContent='Generando…';
     document.body.classList.add('exporting');
-    try{ await fn(); } finally { document.body.classList.remove('exporting'); btn.disabled=false; btn.textContent=txt; }
+    try{ await fn(); } finally { document.body.classList.remove('exporting'); btn.disabled=false; lbl.textContent=txt; fitPreview(); }
   }
 
   /* === Exportar PDF === */
@@ -383,9 +582,9 @@
 
   /* === Controles === */
   document.getElementById('resetBtn').onclick=()=>{ if(!confirm('¿Restaurar base?'))return; state=JSON.parse(JSON.stringify(BASE)); buildEditor(); render(); };
-  document.getElementById('headerSelect').onchange=e=>{const v=e.target.value,f=document.getElementById('headerFile'); if(v==='file'){f.style.display='inline-block';f.click();return;} f.style.display='none'; headerSrc=v; render();};
+  document.getElementById('headerSelect').onchange=e=>{const v=e.target.value,f=document.getElementById('headerFile'); if(v==='file'){f.click();return;} headerSrc=v; render();};
   document.getElementById('headerFile').onchange=async e=>{const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=()=>{headerSrc=r.result; render();}; r.readAsDataURL(file);};
-  document.getElementById('coverSelect').onchange=e=>{const v=e.target.value,f=document.getElementById('coverFile'); if(v==='file'){f.style.display='inline-block';f.click();return;} f.style.display='none'; coverSrc=v; render();};
+  document.getElementById('coverSelect').onchange=e=>{const v=e.target.value,f=document.getElementById('coverFile'); if(v==='file'){f.click();return;} coverSrc=v; render();};
   document.getElementById('coverFile').onchange=async e=>{const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=()=>{coverSrc=r.result; render();}; r.readAsDataURL(file);};
   document.getElementById('coverFit').onchange=e=>{coverFit=e.target.value; render();};
   document.getElementById('themeColor').oninput=e=>{theme=e.target.value; render();};
