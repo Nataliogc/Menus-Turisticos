@@ -65,6 +65,16 @@
   .editor li{margin:2px 0;outline:none}
   .add-btn{margin:4px 0 8px;padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer}
   .tip{font-size:12px;color:#666;margin:6px 0 0}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .status{font-size:12px;color:#0b7a44;min-width:90px}
+
+  /* Separación de páginas solo en pantalla (no afecta a PDF/imagen/impresión) */
+  @media screen{
+    #pagesHost{padding-bottom:20px}
+    #pagesHost .page{margin:0 auto 14px;box-shadow:0 2px 14px rgba(0,0,0,.15)}
+    body.exporting #pagesHost{padding-bottom:0}
+    body.exporting #pagesHost .page{margin:0 auto;box-shadow:none}
+  }
 </style>
 </head>
 <body>
@@ -116,7 +126,13 @@
     </label>
     <button id="imgBtn" class="btn secondary" type="button">Descargar imagen</button>
 
+    <button id="printBtn" class="btn secondary" type="button">Imprimir</button>
+    <button id="exportJsonBtn" class="btn secondary" type="button">Guardar menú (.json)</button>
+    <button id="importJsonBtn" class="btn secondary" type="button">Abrir menú (.json)</button>
+    <input type="file" id="importJsonFile" accept="application/json,.json" style="display:none">
+
     <button id="resetBtn" class="btn warn" type="button">Restaurar base</button>
+    <span id="saveStatus" class="status"></span>
   </div>
 
   <!-- Editor -->
@@ -138,7 +154,7 @@
         <ol id="postresEdit"></ol>
       </div>
     </div>
-    <p class="tip">Doble clic para editar. <b>Enter</b> añade; <b>Backspace</b> elimina. Los vacíos se omiten en el documento final.</p>
+    <p class="tip">Clic para editar. <b>Enter</b> añade; <b>Backspace</b> en un plato vacío lo elimina. Los vacíos se omiten en el documento final. Los cambios se guardan solos en este navegador.</p>
   </div>
 </div>
 
@@ -179,14 +195,17 @@
   const listHTML=arr=>clean(arr).map(it=>'<li>'+parseAllergens(it)+'</li>').join('');
 
   /* === Editor === */
+  function placeCaretAtEnd(el){const r=document.createRange(); r.selectNodeContents(el); r.collapse(false); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r);}
   function mountEditable(id, arrayRef){
     const ol=document.getElementById(id), box=ol.parentElement; ol.innerHTML='';
     arrayRef.forEach((txt,i)=>{
       const li=document.createElement('li'); li.textContent=txt; li.contentEditable=true;
-      li.addEventListener('blur',()=>{const v=li.textContent.replace(/\s+/g,' ').trim(); if(v===''){arrayRef.splice(i,1); buildEditor(); render();} else {arrayRef[i]=v; render();}});
+      const val=()=>li.textContent.replace(/\s+/g,' ').trim();
+      li.addEventListener('input',()=>{arrayRef[i]=val();});
+      li.addEventListener('blur',()=>{if(!li.isConnected) return; const v=val(); if(v===''){arrayRef.splice(i,1); buildEditor(); render();} else {arrayRef[i]=v; render();}});
       li.addEventListener('keydown',e=>{
-        if(e.key==='Enter'){e.preventDefault(); arrayRef.splice(i+1,0,''); buildEditor(); const nl=ol.querySelectorAll('li')[i+1]; if(nl) nl.focus();}
-        if(e.key==='Backspace' && li.textContent.trim()===''){e.preventDefault(); arrayRef.splice(i,1); buildEditor(); render();}
+        if(e.key==='Enter'){e.preventDefault(); arrayRef[i]=val(); arrayRef.splice(i+1,0,''); buildEditor(); const nl=ol.querySelectorAll('li')[i+1]; if(nl) nl.focus(); render();}
+        if(e.key==='Backspace' && li.textContent.trim()===''){e.preventDefault(); arrayRef.splice(i,1); buildEditor(); const pl=ol.querySelectorAll('li')[Math.max(0,i-1)]; if(pl){pl.focus(); placeCaretAtEnd(pl);} render();}
       });
       ol.appendChild(li);
     });
@@ -198,7 +217,7 @@
   }
   function buildEditor(){
     const ie=document.getElementById('introEdit');
-    ie.textContent=state.intro||''; ie.onblur=()=>{state.intro=ie.innerText.trim(); render();};
+    ie.textContent=state.intro||''; ie.oninput=()=>{state.intro=ie.innerText.trim();}; ie.onblur=()=>{state.intro=ie.innerText.trim(); render();};
     mountEditable('primerosEdit', state.primeros);
     mountEditable('pescadosEdit', state.pescados);
     mountEditable('carnesEdit',   state.carnes);
@@ -213,7 +232,9 @@
     page.querySelector('.page-footer img').src=FOOTER_IMG;
     return page;
   }
-  const section=(t,items)=>{const d=document.createElement('div'); d.className='section'; d.innerHTML='<h2>'+t+'</h2><div class="columns"><ol>'+listHTML(items)+'</ol></div>'; return d;};
+  const section=(t,items,start)=>{const d=document.createElement('div'); d.className='section'; d.innerHTML='<h2>'+t+'</h2><div class="columns"><ol'+(start>1?' start="'+start+'"':'')+'>'+listHTML(items)+'</ol></div>'; return d;};
+  const MM=96/25.4; // px por mm
+  const overflows=c=>c.scrollHeight>c.clientHeight+1;
 
   function paginate(){
     const host=document.getElementById('pagesHost'); host.innerHTML='';
@@ -223,37 +244,112 @@
       host.appendChild(p);
     }
     let page=createPage(); host.appendChild(page);
-    const add=(sec)=>{const c=page.querySelector('.content'); c.appendChild(sec); if(c.scrollHeight>c.clientHeight){c.removeChild(sec); page=createPage(); host.appendChild(page); page.querySelector('.content').appendChild(sec);}};
-    [section('Primeros',state.primeros), section('Segundos – Pescados',state.pescados), section('Segundos – Carnes',state.carnes), section('Postres',state.postres)].forEach(add);
+    const content=()=>page.querySelector('.content');
+    const newPage=()=>{page=createPage(); host.appendChild(page);};
+
+    // Coloca una sección entera; si no cabe ni en una página vacía, la reparte entre páginas
+    const add=(title,items)=>{
+      let list=clean(items), num=1, cont=false;
+      if(!list.length) return;
+      while(list.length){
+        const t=cont?title+' (cont.)':title;
+        let c=content(), sec=section(t,list,num); c.appendChild(sec);
+        if(!overflows(c)) return;
+        c.removeChild(sec);
+        if(c.children.length){ newPage(); c=content(); sec=section(t,list,num); c.appendChild(sec); if(!overflows(c)) return; c.removeChild(sec); }
+        // Partir: meter platos uno a uno hasta llenar la página
+        sec=section(t,[],num); c.appendChild(sec);
+        const ol=sec.querySelector('ol'); let n=0;
+        for(const it of list){
+          const li=document.createElement('li'); li.innerHTML=parseAllergens(it); ol.appendChild(li);
+          if(overflows(c)){ ol.removeChild(li); break; }
+          n++;
+        }
+        if(n===0){ // ni un plato cabe: se fuerza para no entrar en bucle
+          if(!c.contains(sec)) c.appendChild(sec);
+          const li=document.createElement('li'); li.innerHTML=parseAllergens(list[0]); ol.appendChild(li); n=1;
+        }
+        list=list.slice(n); num+=n; cont=true;
+        if(list.length) newPage();
+      }
+    };
+    add('Primeros',state.primeros);
+    add('Segundos – Pescados',state.pescados);
+    add('Segundos – Carnes',state.carnes);
+    add('Postres',state.postres);
 
     if(state.intro && state.intro.trim()){
-      const last=host.querySelector('.page:last-child .content');
-      last.classList.add('has-note');
-      const wrap=document.createElement('div'); wrap.className='pinned-note';
-      const note=document.createElement('div'); note.className='postit'; note.textContent=state.intro.trim();
-      wrap.appendChild(note); last.appendChild(wrap);
+      const place=()=>{
+        const c=content();
+        const wrap=document.createElement('div'); wrap.className='pinned-note';
+        const note=document.createElement('div'); note.className='postit'; note.textContent=state.intro.trim();
+        wrap.appendChild(note); c.appendChild(wrap);
+        // Reserva justo el alto del post-it (más su margen y la chincheta)
+        c.style.paddingBottom=(wrap.offsetHeight+6*MM+14*MM)+'px';
+        return {c,wrap};
+      };
+      let r=place();
+      if(overflows(r.c)){ r.c.removeChild(r.wrap); r.c.style.paddingBottom=''; newPage(); place(); }
     }
   }
+
+  /* === Guardado automático (en este navegador) === */
+  const STORE_KEY='menusTuristicos.v1';
+  const $=id=>document.getElementById(id);
+  const isPath=v=>typeof v==='string' && !v.startsWith('data:');
+  function snapshot(){
+    return {state, theme, bg:$('bgColor').value||'#ffffff', coverFit,
+            headerSrc:isPath(headerSrc)?headerSrc:null, coverSrc:isPath(coverSrc)?coverSrc:null};
+  }
+  let saveTimer=null;
+  function save(){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); flash('Guardado ✓'); }catch(e){}
+    },300);
+  }
+  function flash(msg){const el=$('saveStatus'); el.textContent=msg; clearTimeout(flash.t); flash.t=setTimeout(()=>el.textContent='',2000);}
+  function setSelect(sel,val){ if([...sel.options].some(o=>o.value===val)) sel.value=val; }
+  function applyData(d){
+    if(!d || !d.state) return false;
+    const st=d.state, arr=a=>Array.isArray(a)?a.map(String):[];
+    state={intro:String(st.intro||''), primeros:arr(st.primeros), pescados:arr(st.pescados), carnes:arr(st.carnes), postres:arr(st.postres)};
+    if(d.theme){theme=d.theme; $('themeColor').value=d.theme;}
+    if(d.bg) $('bgColor').value=d.bg;
+    if(d.coverFit){coverFit=d.coverFit; $('coverFit').value=d.coverFit;}
+    if(d.headerSrc!==null && d.headerSrc!==undefined){headerSrc=d.headerSrc; setSelect($('headerSelect'),d.headerSrc);}
+    if(d.coverSrc!==null && d.coverSrc!==undefined){coverSrc=d.coverSrc; setSelect($('coverSelect'),d.coverSrc);}
+    return true;
+  }
+  function loadSaved(){ try{ const raw=localStorage.getItem(STORE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){} }
 
   /* === Render === */
   function render(){
     document.documentElement.style.setProperty('--theme', theme);
     document.documentElement.style.setProperty('--bg', document.getElementById('bgColor').value || '#ffffff');
     paginate();
+    save();
+  }
+
+  /* Bloquea los botones mientras se genera un archivo */
+  async function busy(btn, fn){
+    const txt=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+    document.body.classList.add('exporting');
+    try{ await fn(); } finally { document.body.classList.remove('exporting'); btn.disabled=false; btn.textContent=txt; }
   }
 
   /* === Exportar PDF === */
-  document.getElementById('pdfBtn').onclick=async()=>{
+  document.getElementById('pdfBtn').onclick=()=>busy(document.getElementById('pdfBtn'), async()=>{
     const host=document.getElementById('pagesHost');
     await Promise.all([...host.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve()));
     const opt={margin:0,filename:'menu-turistico.pdf',image:{type:'jpeg',quality:0.98},
                html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false},
                jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
     await html2pdf().set(opt).from(host).save().catch(()=>window.print());
-  };
+  });
 
   /* === Exportar imagen (por página o completa) === */
-  document.getElementById('imgBtn').onclick = async () => {
+  document.getElementById('imgBtn').onclick = () => busy(document.getElementById('imgBtn'), async () => {
     const fmt = document.getElementById('imgFormat').value; // 'png' o 'jpeg'
     const perPage = document.getElementById('perPage').checked;
     const quality = (fmt === 'png') ? undefined : 0.96;
@@ -283,7 +379,7 @@
       const canvas = await html2canvas(host, {scale:3, backgroundColor:'#ffffff', useCORS:true, logging:false});
       saveCanvas(canvas, 0);
     }
-  };
+  });
 
   /* === Controles === */
   document.getElementById('resetBtn').onclick=()=>{ if(!confirm('¿Restaurar base?'))return; state=JSON.parse(JSON.stringify(BASE)); buildEditor(); render(); };
@@ -295,7 +391,29 @@
   document.getElementById('themeColor').oninput=e=>{theme=e.target.value; render();};
   document.getElementById('bgColor').oninput=()=>render();
 
+  $('printBtn').onclick=()=>window.print();
+
+  $('exportJsonBtn').onclick=()=>{
+    const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const d=new Date(), f=n=>String(n).padStart(2,'0');
+    a.download='menu-turistico-'+d.getFullYear()+'-'+f(d.getMonth()+1)+'-'+f(d.getDate())+'.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1200);
+  };
+  $('importJsonBtn').onclick=()=>$('importJsonFile').click();
+  $('importJsonFile').onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{ if(!applyData(JSON.parse(r.result))) throw 0; buildEditor(); render(); flash('Menú cargado ✓'); }
+      catch(err){ alert('Ese archivo no es un menú válido.'); }
+      e.target.value='';
+    };
+    r.readAsText(file);
+  };
+
   /* init */
+  loadSaved();
   buildEditor(); render();
 })();
 </script>
